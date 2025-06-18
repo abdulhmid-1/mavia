@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لعبة المافيا</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      direction: rtl;
+      background-image: url('background.jpg');
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+    }
+    .overlay {
+      background-color: rgba(0,0,0,0.7);
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+    }
+    button {
+      background-color: #2196F3;
+      color: white;
+    }
+    button:hover {
+      background-color: #0b7dda;
+    }
+    #roleImage {
+      width: 150px;
+      height:150px;
+      margin:10px auto;
+    }
+    #scrollingSignature {
+      position:static;
+      bottom: 0;
+      width: 100%;
+      background-color: rgba(0,0,0,0.5);
+      color: white;
+      font-size: 20px;
+      padding: 5px 0;
+    }
+    #sleepTimer {
+      font-size: 24px;
+      color: yellow;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  <h1>🎭 مرحبًا بك في لعبة المافيا!</h1>
+  <button onclick="clearStorage()">🗑️ تصفير كل البيانات</button>
+  <button id="reviewAfterReloadBtn" style="display:none" onclick="reviewAfterReload()">📜 مراجعة الأدوار المحفوظة</button>
+
+  <div id="playerInputSection">
+    <input type="text" id="playerNameInput" placeholder="أدخل اسم اللاعب">
+    <button onclick="addPlayer()">إضافة</button>
+    <p>عدد اللاعبين: <span id="playerCount">0</span></p>
+    <button onclick="startGame()">التالي</button>
+    <ul id="playerList"></ul>
+  </div>
+
+  <div id="gameSection" style="display:none">
+    <h2 id="instruction">سلم الجوال إلى اللاعب التالي</h2>
+    <p id="currentPlayerName"></p>
+    <div id="beforeReveal">
+      <button onclick="revealRole()">عرض دوري</button>
+    </div>
+    <div id="roleSection" style="display:none">
+      <img id="roleImage" src="/icon-192.png">
+      <p id="currentRole"></p>
+      <button onclick="nextPlayer()">التالي</button>
+    </div>
+  </div>
+
+  <div id="resetSection" style="display:none">
+    <h2>🎉 تم توزيع جميع الأدوار!</h2>
+    <button onclick="resetGame()">إعادة اللعب (بلاعبين جدد)</button>
+    <button onclick="restartSamePlayers()">إعادة بنفس اللاعبين</button>
+    <button onclick="reviewRoles()">مراجعة الأدوار</button>
+    <div id="sleepTimer"></div>
+  </div>
+
+  <div id="reviewSection" style="display:none">
+    <h2>📋 مراجعة الأدوار</h2>
+    <ul id="reviewList"></ul>
+    <button onclick="closeReview()">إغلاق المراجعة</button>
+  </div>
+
+  <div id="scrollingSignature">تصميم المهندس عبدالحميد صلاح ENG: Abdulhamid Salah</div>
+
+  <!-- الأصوات -->
+  <audio id="roleSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+  <audio id="doneSound" src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg" preload="auto"></audio>
+  <audio id="sleepSound" src="sleep.mp3" preload="auto"></audio>
+  <audio id="mafiaWakeupSound" src="mafia.mp3" preload="auto"></audio>
+
+  <script>
+    let players = JSON.parse(localStorage.getItem("players")) || [];
+    let roles = JSON.parse(localStorage.getItem("roles")) || [];
+    let currentPlayerIndex = 0;
+    let sleepTimerInterval;
+
+    function clearStorage() {
+      localStorage.clear();
+      location.reload();
+    }
+
+    function addPlayer() {
+      const input = document.getElementById("playerNameInput");
+      const name = input.value.trim();
+      if (name) {
+        players.push(name);
+        document.getElementById("playerList").innerHTML += `<li>${name}</li>`;
+        document.getElementById("playerCount").textContent = players.length;
+        input.value = "";
+        input.focus();
+        localStorage.setItem("players", JSON.stringify(players));
+      }
+    }
+
+    document.getElementById("playerNameInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") addPlayer();
+    });
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function generateRoles() {
+      roles = Array(players.length).fill("موطن صالح");
+      roles[0] = "شيخ";
+      roles[1] = "مافيا";
+      roles[2] = "مافيا";
+      shuffle(roles);
+      localStorage.setItem("roles", JSON.stringify(roles));
+    }
+
+    function startGame() {
+      if (players.length < 7) {
+        alert("يجب أن يكون عدد اللاعبين 7 أو أكثر!");
+        return;
+      }
+      currentPlayerIndex = 0;
+      generateRoles();
+      shuffle(players);
+      document.getElementById("playerInputSection").style.display = "none";
+      document.getElementById("gameSection").style.display = "block";
+      showCurrentPlayerName();
+    }
+
+    function showCurrentPlayerName() {
+      if (currentPlayerIndex >= players.length) {
+        document.getElementById("gameSection").style.display = "none";
+        document.getElementById("resetSection").style.display = "block";
+        document.getElementById("doneSound").play();
+        playSleepSound();
+        return;
+      }
+      const name = players[currentPlayerIndex];
+      document.getElementById("instruction").textContent = `سلم الجوال إلى اللاعب: ${name}`;
+      document.getElementById("currentPlayerName").textContent = `اللاعب: ${name}`;
+      document.getElementById("roleSection").style.display = "none";
+      document.getElementById("beforeReveal").style.display = "block";
+    }
+
+    function revealRole() {
+      const role = roles[currentPlayerIndex];
+      const roleText = document.getElementById("currentRole");
+      const roleImage = document.getElementById("roleImage");
+
+      roleText.textContent = `دورك هو: ${role}`;
+      roleText.style.color = role === "مافيا" ? "red" : role === "شيخ" ? "green" : "lightblue";
+
+      if (role === "مافيا") {
+        roleImage.src = "mafia.jpg";
+      } else if (role === "شيخ") {
+        roleImage.src = "sheikh.png";
+      } else {
+        roleImage.src = "citizen.png";
+      }
+      roleImage.style.display = "block";
+
+      document.getElementById("roleSection").style.display = "block";
+      document.getElementById("beforeReveal").style.display = "none";
+      const sound = document.getElementById("roleSound");
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+
+    function nextPlayer() {
+      currentPlayerIndex++;
+      showCurrentPlayerName();
+    }
+
+    function resetGame() {
+      players = [];
+      roles = [];
+      currentPlayerIndex = 0;
+      document.getElementById("playerList").innerHTML = "";
+      document.getElementById("playerCount").textContent = "0";
+      document.getElementById("playerNameInput").value = "";
+      localStorage.removeItem("players");
+      localStorage.removeItem("roles");
+      document.getElementById("resetSection").style.display = "none";
+      document.getElementById("gameSection").style.display = "none";
+      document.getElementById("reviewSection").style.display = "none";
+      document.getElementById("playerInputSection").style.display = "block";
+    }
+
+    function restartSamePlayers() {
+      currentPlayerIndex = 0;
+      generateRoles();
+      document.getElementById("resetSection").style.display = "none";
+      document.getElementById("reviewSection").style.display = "none";
+      document.getElementById("gameSection").style.display = "block";
+      showCurrentPlayerName();
+    }
+
+    function reviewRoles() {
+      document.getElementById("resetSection").style.display = "none";
+      document.getElementById("reviewSection").style.display = "block";
+      const reviewList = document.getElementById("reviewList");
+      reviewList.innerHTML = "";
+      for (let i = 0; i < players.length; i++) {
+        reviewList.innerHTML += `<li>${players[i]}: ${roles[i]}</li>`;
+      }
+    }
+
+    function closeReview() {
+      document.getElementById("reviewSection").style.display = "none";
+      document.getElementById("resetSection").style.display = "block";
+    }
+
+    function reviewAfterReload() {
+      players = JSON.parse(localStorage.getItem("players"));
+      roles = JSON.parse(localStorage.getItem("roles"));
+      const reviewList = document.getElementById("reviewList");
+      reviewList.innerHTML = "";
+      for (let i = 0; i < players.length; i++) {
+        reviewList.innerHTML += `<li>${players[i]}: ${roles[i]}</li>`;
+      }
+      document.getElementById("reviewSection").style.display = "block";
+      document.getElementById("playerInputSection").style.display = "none";
+    }
+
+    function playSleepSound() {
+      const sleepAudio = document.getElementById("sleepSound");
+      const mafiaAudio = document.getElementById("mafiaWakeupSound");
+      const timer = document.getElementById("sleepTimer");
+      let duration = 30;
+      timer.style.display = "block";
+      sleepAudio.loop = true;
+      sleepAudio.play();
+
+      sleepTimerInterval = setInterval(() => {
+        timer.textContent = `🕒 الكل ينام... ${duration} ثانية`;
+        duration--;
+        if (duration < 0) {
+          clearInterval(sleepTimerInterval);
+          sleepAudio.pause();
+          sleepAudio.currentTime = 0;
+          timer.textContent = `🕒 المافيا تصحى وتتعارف... 15 ثانية`;
+
+          // صوت المافيا
+          mafiaAudio.play();
+          let mafiaDuration = 15;
+          const mafiaTimer = setInterval(() => {
+            timer.textContent = `🕒 المافيا تصحى وتتعارف... ${mafiaDuration} ثانية`;
+            mafiaDuration--;
+            if (mafiaDuration < 0) {
+              clearInterval(mafiaTimer);
+              mafiaAudio.pause();
+              mafiaAudio.currentTime = 0;
+              timer.style.display = "none";
+            }
+          }, 1000);
+        }
+      }, 1000);
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem("players") && localStorage.getItem("roles")) {
+        document.getElementById("reviewAfterReloadBtn").style.display = "inline-block";
+      }
+      if (localStorage.getItem("players")) {
+        players = JSON.parse(localStorage.getItem("players"));
+        const playerList = document.getElementById("playerList");
+        const playerCount = document.getElementById("playerCount");
+        playerList.innerHTML = "";
+        players.forEach(name => {
+          playerList.innerHTML += `<li>${name}</li>`;
+        });
+        playerCount.textContent = players.length;
+      }
+    }
+  </script>
+</body>
+</html>

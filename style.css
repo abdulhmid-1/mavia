@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo&display=swap');
+
+body {
+  font-family: 'Cairo', sans-serif;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  background-color: #121212;
+  color: #ffffff;
+}
+
+h1 {
+  margin-top: 20px;
+  font-size: 32px;
+  color: #ffcc00;
+}
+
+.container {
+  margin: 20px auto;
+  max-width: 600px;
+  padding: 20px;
+  background-color: #1e1e1e;
+  border-radius: 15px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+button {
+  background-color: #ffcc00;
+  color: #000;
+  border: none;
+  padding: 15px 25px;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin: 10px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #e6b800;
+}
+
+input[type="text"] {
+  padding: 10px;
+  font-size: 18px;
+  width: 80%;
+  max-width: 400px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+.player-card {
+  background-color: #2a2a2a;
+  margin: 10px auto;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 400px;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+}
+
+.player-card img {
+  width: 150px;
+  height: auto;
+  margin-bottom: 10px;
+  border-radius: 10px;
+}
+
+.role {
+  font-size: 20px;
+  color: #ffcc00;
+  margin-top: 10px;
+}
